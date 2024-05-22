@@ -2,56 +2,62 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from langchain_openai import ChatOpenAI
-from langchain.prompts.prompt import PromptTemplate
-# from langchain_core.documents import Document
+from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.document_loaders import WebBaseLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
+from langchain.chains import create_retrieval_chain
 
-# docA = Document(
-#     page_content="LangChain Expression Language, or LCEL, is a declarative way to easily compose chains together. LCEL was designed from day 1 to support putting prototypes in production, with no code changes, from the simplest “prompt + LLM” chain to the most complex chains (we’ve seen folks successfully run LCEL chains with 100s of steps in production). To highlight a few of the reasons you might want to use LCEL:",
-# )
-
-def get_document_from_web(url):
-    loader = WebBaseLoader(url)
+# Retrieve Data
+def get_docs():
+    loader = WebBaseLoader('https://python.langchain.com/docs/expression_language/')
     docs = loader.load()
-    
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-    )
-    splitDocs = splitter.split_documents(docs)
-    print(len(splitDocs))
-    return  splitDocs
 
-def create_db(docs):
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=200,
+        chunk_overlap=20
+    )
+
+    splitDocs = text_splitter.split_documents(docs)
+
+    return splitDocs
+
+def create_vector_store(docs):
     embedding = OpenAIEmbeddings()
     vectorStore = FAISS.from_documents(docs, embedding=embedding)
     return vectorStore
 
+
 def create_chain(vectorStore):
     model = ChatOpenAI(
-    model="gpt-3.5-turbo-1106",
-    temperature=0.4,
+        temperature=0.4,
+        model='gpt-3.5-turbo-1106'
     )
 
-    prompt = ChatPromptTemplate.from_messages("""
-                                            Answer the user's question:
-                                            Context: LangChain Expression Language, or LCEL, is a declarative way to easily compose chains together. LCEL was designed from day 1 to support putting prototypes in production, with no code changes, from the simplest “prompt + LLM” chain to the most complex chains (we’ve seen folks successfully run LCEL chains with 100s of steps in production). To highlight a few of the reasons you might want to use LCEL:
-                                            Question: {input}
-                                            """)
+    prompt = ChatPromptTemplate.from_template("""
+    Answer the user's question.
+    Context: {context}
+    Question: {input}
+    """)
 
     # chain = prompt | model
-    chain = create_stuff_documents_chain(
+    document_chain = create_stuff_documents_chain(
         llm=model,
         prompt=prompt
-        )
+    )
 
-docs = get_document_from_web('https://mealzz.de/')
-vectorStore = create_db(docs)
+    retriever = vectorStore.as_retriever()
+
+    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+
+    return retrieval_chain
 
 
+docs = get_docs()
+vectorStore = create_vector_store(docs)
+chain = create_chain(vectorStore)
 
 response = chain.invoke({
     "input": "What is LCEL?",
