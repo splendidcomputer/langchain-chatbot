@@ -9,6 +9,12 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain.chains import create_retrieval_chain
+from langchain_community.document_loaders import PyPDFLoader
+
+# Retrieve Data
+
+# DATA_PATH = './docs/Dienstreiseabrechnung.pdf'
+
 
 def get_documents_from_web(url):
     loader = WebBaseLoader(url)
@@ -55,6 +61,8 @@ def create_chain(vectorStore):
 
 
 docs = get_documents_from_web('https://python.langchain.com/docs/expression_language/')
+print("The type of docs is", type(docs))
+
 vectorStore = create_db(docs)
 chain = create_chain(vectorStore)
 

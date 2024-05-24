@@ -63,11 +63,12 @@ def create_chain(vectorStore):
 
 
 docs = get_docs()
+
 vectorStore = create_vector_store(docs)
 chain = create_chain(vectorStore)
 
 response = chain.invoke({
-    "input": "Wass ist Reisekostenabrechnung?",
+    "input": "Was ist Reisekostenabrechnung?",
 })
 
 print(response)
