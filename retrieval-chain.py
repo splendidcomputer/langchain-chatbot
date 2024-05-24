@@ -11,13 +11,32 @@ from langchain_community.vectorstores.faiss import FAISS
 from langchain.chains import create_retrieval_chain
 from langchain_community.document_loaders import PyPDFLoader
 
-# Retrieve Data
+DATA_PATH = './docs/Dienstreiseabrechnung.pdf'
 
-# DATA_PATH = './docs/Dienstreiseabrechnung.pdf'
-
+def get_document(Loader, url):
+    loader = Loader(url)
+    docs = loader.load()
+    
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=200,
+        chunk_overlap=20
+    )
+    splitDocs = splitter.split_documents(docs)
+    return splitDocs
 
 def get_documents_from_web(url):
     loader = WebBaseLoader(url)
+    docs = loader.load()
+    
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=200,
+        chunk_overlap=20
+    )
+    splitDocs = splitter.split_documents(docs)
+    return splitDocs
+
+def get_documents_from_pdf(file):
+    loader = PyPDFLoader(file)
     docs = loader.load()
     
     splitter = RecursiveCharacterTextSplitter(
@@ -60,8 +79,9 @@ def create_chain(vectorStore):
     return retrieval_chain
 
 
-docs = get_documents_from_web('https://python.langchain.com/docs/expression_language/')
-print("The type of docs is", type(docs))
+# docs = get_documents_from_web('https://python.langchain.com/docs/expression_language/')
+# docs = get_document(WebBaseLoader, 'https://python.langchain.com/docs/expression_language/')
+docs = get_document(PyPDFLoader, DATA_PATH)
 
 vectorStore = create_db(docs)
 chain = create_chain(vectorStore)
