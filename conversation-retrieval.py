@@ -14,39 +14,57 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import MessagesPlaceholder
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, UnstructuredExcelLoader
+import os
 
-# def get_documents_from_web(url):
-#     loader = WebBaseLoader(url)
-#     docs = loader.load()
+data_directory = './docs/A-Schein.xlsx'
+
+# Extract the directory part
+data_directory = os.path.dirname(data_directory)
+
+# Now data_directory is a directory path
+print(data_directory)  # Output: './docs'
+
+
+def get_documents(data_directory):
+    # Check if the provided path is a directory
+    if not os.path.isdir(data_directory):
+        raise ValueError("Provided path is not a directory.")
     
-#     splitter = RecursiveCharacterTextSplitter(
-#         chunk_size=400,
-#         chunk_overlap=20
-#     )
-#     splitDocs = splitter.split_documents(docs)
-#     return splitDocs
-
-# def get_documents_from_pdf(url):
-#     loader = PyPDFLoader(url)
-#     docs = loader.load()
+    documents = []
     
-#     splitter = RecursiveCharacterTextSplitter(
-#         chunk_size=400,
-#         chunk_overlap=20
-#     )
-#     splitDocs = splitter.split_documents(docs)
-#     return splitDocs
-
-def get_documents(Loader, url):
-    loader = Loader(url)
-    docs = loader.load()
+    for filename in os.listdir(data_directory):
+        file_path = os.path.join(data_directory, filename)
+        
+        # Check if the path is a file
+        if os.path.isfile(file_path):
+            file_extension = filename.split('.')[-1].lower()
+            
+            loader_map = {
+                'txt': None,  # Assuming there's a default loader for text files
+                'pdf': PyPDFLoader,
+                'docx': Docx2txtLoader,
+                'xlsx': UnstructuredExcelLoader,
+                # Add more extensions and corresponding loader classes as needed
+            }
+            
+            loader_class = loader_map.get(file_extension)
+            
+            if loader_class:
+                loader = loader_class(file_path)
+                docs = loader.load()
+                documents.extend(docs)
+            else:
+                print(f"No loader available for '{file_extension}' files. Skipping {filename}.")
     
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=400,
         chunk_overlap=20
     )
-    splitDocs = splitter.split_documents(docs)
-    return splitDocs
+    split_docs = splitter.split_documents(documents)
+    
+    return split_docs
+
+
 
 def create_db(docs):
     embedding = OpenAIEmbeddings()
@@ -101,10 +119,8 @@ def process_chat(chain, question, chat_history):
     return response["answer"]
 
 if __name__ == '__main__':
-    # docs = get_documents_from_web('https://python.langchain.com/docs/expression_language/')
-    # docs = get_documents_from_pdf(PyPDFLoader, './docs/Dienstreiseabrechnung.pdf')
-    # docs = get_documents(Docx2txtLoader, './docs/Merkblatt Dienstreisen.docx')
-    docs = get_documents(UnstructuredExcelLoader, './docs/A-Schein.xlsx')
+
+    docs = get_documents(data_directory)
     vectorStore = create_db(docs)
     chain = create_chain(vectorStore)
 
