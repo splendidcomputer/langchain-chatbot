@@ -16,3 +16,5 @@ docx2txt
 unstructured
 networkx
 pandas
+
+flask
