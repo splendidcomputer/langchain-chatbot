@@ -106,6 +106,15 @@ def process_chat(chain, question, chat_history):
     })
     return response["answer"]
 
+def convert_chat_history(chat_history):
+    converted_chat_history = []
+    for message in chat_history:
+        if message["sender"] == "human":
+            converted_chat_history.append(HumanMessage(content=message["msg"]))
+        elif message["sender"] == "ai":
+            converted_chat_history.append(AIMessage(content=message["msg"]))
+    return converted_chat_history
+
 app = Flask(__name__)
 
 docs = get_documents(data_directory)
@@ -113,19 +122,29 @@ vectorStore = create_db(docs)
 chain = create_chain(vectorStore)
 chat_history = []
 
-# @app.route('/ask', methods=['GET'])
-@app.get("/")
+@app.route('/ask', methods=['GET'])
+
 def ask_question():
     data = request.get_json()
-    question = data.get('question')
+    user_input = data.get('question')
     chat_history = data.get('chat_history', [])
+    
+    chat_history = convert_chat_history(chat_history)
 
-    response = process_chat(chain, question, chat_history)
+    response = process_chat(chain, user_input, chat_history)
 
-    chat_history.append(HumanMessage(content=question))
+    chat_history.append(HumanMessage(content=user_input))
     chat_history.append(AIMessage(content=response))
-
-    return jsonify({"response": response, "chat_history": [msg.content for msg in chat_history]} )
+    
+    message_dicts = [
+    {
+        "msg": message.content, 
+        "sender": 'human' if type(message).__name__ == 'HumanMessage' else 'ai'
+    } 
+    for message in chat_history
+]
+    
+    return jsonify({"response": response, "chat_history": message_dicts} )
     
 if __name__ == '__main__':
     app.run(debug=True)
