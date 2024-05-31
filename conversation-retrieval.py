@@ -13,7 +13,7 @@ from langchain.chains import create_retrieval_chain
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import MessagesPlaceholder
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
-from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, UnstructuredExcelLoader
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, UnstructuredExcelLoader, TextLoader
 import os
 
 data_directory = './docs/A-Schein.xlsx'
@@ -40,7 +40,7 @@ def get_documents(data_directory):
             file_extension = filename.split('.')[-1].lower()
             
             loader_map = {
-                'txt': None,  # Assuming there's a default loader for text files
+                'txt': TextLoader,
                 'pdf': PyPDFLoader,
                 'docx': Docx2txtLoader,
                 'xlsx': UnstructuredExcelLoader,
