@@ -1,2 +1,4 @@
+python-dotenv
 jupyter
 langchain
+langchain-openai
